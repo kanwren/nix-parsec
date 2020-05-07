@@ -8,14 +8,15 @@
 with builtins;
 
 with rec {
-  # Redefine foldl here to avoid depending on lib
-  foldl = op: nul: list:
+  # Redefine foldr here to avoid depending on lib
+  foldr = op: nul: list:
     let
-      foldl' = n:
-        if n == -1
+      len = length list;
+      fold' = n:
+        if n == len
         then nul
-        else op (foldl' (n - 1)) (elemAt list n);
-    in foldl' (length list - 1);
+        else op (elemAt list n) (fold' (n + 1));
+    in fold' 0;
 };
 
 rec {
@@ -99,7 +100,7 @@ rec {
 
   # Run a list of parsers, using the first one that succeeds
   #   :: [Parser a] -> Parser a
-  choice = foldl alt fail;
+  choice = foldr alt fail;
 
   # Consumes a character if it satisfies a predicate
   #   :: (Char -> Bool) -> Parser Char
