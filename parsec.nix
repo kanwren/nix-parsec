@@ -265,6 +265,12 @@ rec {
 
   manyTill = null;
 
+  manyTill1 = null;
+
+  sepBy = null;
+
+  sepBy1 = null;
+
   # }}}
 
   # skips {{{
