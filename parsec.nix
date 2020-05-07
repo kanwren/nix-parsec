@@ -8,7 +8,8 @@
 with builtins;
 
 with rec {
-  # Redefine foldr here to avoid depending on lib
+  # Redefinitions to avoid depending on lib
+
   foldr = op: nul: list:
     let
       len = length list;
@@ -17,6 +18,10 @@ with rec {
         then nul
         else op (elemAt list n) (fold' (n + 1));
     in fold' 0;
+
+  # TODO: optimize result collection
+  reverseList = xs:
+    let l = length xs; in genList (n: elemAt xs (l - n - 1)) l;
 };
 
 rec {
@@ -50,7 +55,7 @@ rec {
     in [ps offset len];
 
   # Augment a parser to also return the number of characters it consuemd
-  tally = parser: ps:
+  measure = parser: ps:
     let
       initialOffset = elemAt ps 1;
       res = parser ps;
@@ -87,7 +92,7 @@ rec {
   bind = parser: f: ps:
     let
       str = elemAt ps 0;
-      res1 = parser ps;   # run the first parser
+      res1 = parser ps;
     in if failed res1
       then null
       else let
@@ -259,17 +264,62 @@ rec {
 
   # Apply a parser one or more times until it fails, returning a list of the
   # resuls
-  #   :: Parser a -> NonEmpty a
+  #   :: Parser a -> Parser (NonEmpty a)
   many1 = parser:
     bind parser (first: fmap (rest: [first] ++ rest) (many parser));
 
-  manyTill = null;
+  # Repeat a parser zero or more times until the end parser succeeds. Returns a
+  # list of the results of the first parser.
+  #   :: Parser a -> Parser b -> Parser [a]
+  manyTill = parser: end:
+    let go = alt (fmap (_: []) end) (bind parser (first: fmap (rest: [first] ++ rest) go));
+    in go;
 
-  manyTill1 = null;
+  # Repeat a parser one or more times until the end parser succeeds. Returns a
+  # list of the results of the first parser.
+  #   :: Parser a -> Parser b -> Parser (NonEmpty a)
+  manyTill1 = parser: end:
+    bind parser (first: fmap (rest: [first] ++ rest) (manyTill parser end));
 
-  sepBy = null;
+  # }}}
 
-  sepBy1 = null;
+  # separators {{{
+
+  # Parse zero or more occurrances of the first parser, separated by the second
+  # parser. Returns a list of results of the first parser.
+  #   :: Parser a -> Parser b -> Parser [a]
+  sepBy = parser: end:
+    alt (sepBy1 parser end) (pure []);
+
+  # Parse one or more occurrances of the first parser, separated by the second
+  # parser. Returns a list of results of the first parser.
+  #   :: Parser a -> Parser b -> Parser (NonEmpty a)
+  sepBy1 = parser: end:
+    bind parser (first: fmap (rest: [first] ++ rest) (many (skipThen end parser)));
+
+  # Parse zero or more occurrances of the first parser, separated and ended by
+  # the second parser. Returns a list of results of the first parser.
+  #   :: Parser a -> Parser b -> Parser [a]
+  endBy = parser: end:
+    many (thenSkip parser end);
+
+  # Parse one or more occurrances of the first parser, separated and ended by
+  # the second parser. Returns a list of results of the first parser.
+  #   :: Parser a -> Parser b -> Parser (NonEmpty a)
+  endBy1 = parser: end:
+    many1 (thenSkip parser end);
+
+  # Parse zero or more occurrances of the first parser, separated and optionally
+  # ended by the second parser. Returns a list of result of the first parser.
+  #   :: Parser a -> Parser b -> Parser [a]
+  sepEndBy = parser: end:
+    null;
+
+  # Parse one or more occurrances of the first parser, separated and optionally
+  # ended by the second parser. Returns a list of result of the first parser.
+  #   :: Parser a -> Parser b -> Parser (NonEmpty a)
+  sepEndBy1 = parser: end:
+    null;
 
   # }}}
 
@@ -316,6 +366,10 @@ rec {
   # it accepts.
   #   :: Parser a -> Parser null
   skipMany1 = parser: skipThen parser (skipMany parser);
+
+  skipTill = null;
+
+  skipTill1 = null;
 
   # }}}
 
