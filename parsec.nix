@@ -225,17 +225,18 @@ rec {
       then [(substring offset n str) (offset + n) (len - n)]
       else null;
 
-  # Consume characters while the predicate holds, returning the consumed
-  # characters
+  # Consume zero or more characters while the predicate holds, returning the
+  # consumed characters.
   #   :: (Char -> Bool) -> Parser String
   takeWhile = pred: ps:
     let
       str = elemAt ps 0;
       offset = elemAt ps 1;
       len = elemAt ps 2;
+      strLen = stringLength str;
       # Search for the next offset that violates the predicate
       go = ix:
-        if ix >= len || !pred (substring ix 1 str)
+        if ix >= strLen || !pred (substring ix 1 str)
           then ix
           else go (ix + 1);
       endIx = go offset;
@@ -243,7 +244,11 @@ rec {
       numChars = endIx - offset;
     in [(substring offset numChars str) endIx (len - numChars)];
 
-  takeWhile1 = null;
+  # Consume one or more characters while the predicate holds, returning the
+  # consumed characters.
+  #   :: (Char -> Bool) -> Parser String
+  takeWhile1 = pred:
+    bind (satisfy pred) (first: fmap (rest: first + rest) (takeWhile pred));
 
   # Apply a parser zero or more times until it fails, returning a list of the
   # results
