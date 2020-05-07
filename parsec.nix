@@ -104,6 +104,10 @@ rec {
   #   :: Parser a -> Parser b -> Parser a
   thenSkip = parser1: parser2: bind parser1 (x: fmap (_: x) parser2);
 
+  # Ignore the results of a parser
+  #   :: Parser a -> Parser null
+  void = parser: fmap (_: null) parser;
+
   # }}}
 
   # options and failure {{{
@@ -290,9 +294,17 @@ rec {
 
   skipWhile1 = null;
 
-  skipMany = null;
+  # Run a parser zero or more times until it fails, discarding all the input
+  # that it accepts.
+  #   :: Parser a -> Parser null
+  skipMany = parser:
+    let go = alt (skipThen parser go) (pure null);
+    in go;
 
-  skipMany1 = null;
+  # Run a parser one or more times until it fails, discarding all the input that
+  # it accepts.
+  #   :: Parser a -> Parser null
+  skipMany1 = parser: skipThen parser (skipMany parser);
 
   # }}}
 
