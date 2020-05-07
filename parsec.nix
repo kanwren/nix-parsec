@@ -20,6 +20,8 @@ with rec {
 };
 
 rec {
+  # running {{{
+
   # Run a parser, returning the result in a single-element list, or 'null' if it
   # failed. This is to disambiguate between failing and suceeding with 'null'.
   #
@@ -31,25 +33,38 @@ rec {
     let res = parser [str 0 (stringLength str)];
     in if failed res then [] else [(elemAt res 0)];
 
-  # Query the current offset into the input
-  #   :: Parser Int
-  offset = ps:
-    let
-      offset = elemAt res 1;
-      len = elemAt res 2;
-    in [offset offset len];
-
-  # Query the current length of input remaining
-  #   :: Parser Int
-  len = ps:
-    let
-      offset = elemAt res 1;
-      len = elemAt res 2;
-    in [len offset len];
-
   # Did a parser fail?
   #   :: Maybe (a, Int, Int) -> Bool
   failed = ps: ps == null;
+
+  # }}}
+
+  # queries {{{
+
+  # Query the current state of the parser
+  #   :: Parser (String, Int, Int)
+  state = ps:
+    let
+      offset = elemAt res 1;
+      len = elemAt res 2;
+    in [ps offset len];
+
+  # Augment a parser to also return the number of characters it consuemd
+  tally = parser: ps:
+    let
+      initialOffset = elemAt ps 1;
+      res = parser ps;
+    in if failed res
+      then null
+      else let
+        value = elemAt res 0;
+        newOffset = elemAt res 1;
+        newLength = elemAt res 2;
+      in [[(newOffset - initialOffset) value] newOffset newLength];
+
+  # }}}
+
+  # composition {{{
 
   # Map a function over the result of a parser
   #   :: (a -> b) -> Parser a -> Parser b
@@ -83,7 +98,15 @@ rec {
 
   # Sequence two parsers, ignoring the result of the first one
   #   :: Parser a -> Parser b -> Parser b
-  andThen = parser1: parser2: bind parser1 (_: parser2);
+  skipThen = parser1: parser2: bind parser1 (_: parser2);
+
+  # Sequence two parsers, ignoring the result of the second one
+  #   :: Parser a -> Parser b -> Parser a
+  thenSkip = parser1: parser2: bind parser1 (x: fmap (_: x) parser2);
+
+  # }}}
+
+  # options and failure {{{
 
   # Parser that always fails (the identity under 'alt')
   #   :: Parser a
@@ -98,9 +121,23 @@ rec {
       res2 = parser2 ps;
     in if failed res1 then res2 else res1;
 
+  # Try to apply a parser, or return a default value if it fails without
+  # consuming input
+  #   :: a -> Parser a -> Parser a
+  option = def: parser: alt parser (pure def);
+
+  # Try to apply a parser. If it succeeds, return its result in a singleton
+  # list, and if it fails without consuming input, return an empty list
+  #   :: Parser a -> Parser [a]
+  optional = parser: alt (fmap (x: [x]) parser) (pure []);
+
   # Run a list of parsers, using the first one that succeeds
   #   :: [Parser a] -> Parser a
   choice = foldr alt fail;
+
+  # }}}
+
+  # consumption primitives {{{
 
   # Consumes a character if it satisfies a predicate
   #   :: (Char -> Bool) -> Parser Char
@@ -114,11 +151,29 @@ rec {
       then [c (offset + 1) (len - 1)]
       else null;
 
+  # Consumes a character if it satisfies a predicate, applying a function to the
+  # result.
+  #   :: (Char -> a) -> (Char -> Bool) -> Parser a
+  satisfyWith = f: pred: ps:
+    let
+      str = elemAt ps 0;
+      offset = elemAt ps 1;
+      len = elemAt ps 2;
+      c = substring offset 1 str; # the next character
+    in if len > 0 && pred c
+      then [(f c) (offset + 1) (len - 1)]
+      else null;
+
   # Consume any character
   #   :: Parser Char
   anyChar = satisfy (_: true);
 
-  # Given a string, try to consume it from the input and return it if it suceeds
+  # Consume any character except a given character
+  #   :: Char -> Parser Char
+  anyCharBut = c: satisfy (x: x != c);
+
+  # Given a string, try to consume it from the input and return it if it
+  # suceeds. If it fails, DON'T consume any input.
   #   :: String -> Parser String
   string = pr: ps:
     let
@@ -130,7 +185,32 @@ rec {
       then [pr (offset + prefixLen) (len - prefixLen)]
       else null;
 
-  # Consume 'n' characters, or fail if there's not enough characters left
+  # 'notFollowedBy p' only succeeds when 'p' fails, and never consumes any input
+  #   :: Parser a -> Parser null
+  notFollowedBy = parser: ps:
+    let
+      offset = elemAt ps 1;
+      len = elemAt ps 2;
+    in if failed (parser ps)
+      then [null offset len]
+      else null;
+
+  # Fails if there is still more input remaining, returns null otherwise
+  #   :: Parser null
+  eof = ps:
+    let
+      offset = elemAt ps 1;
+      len = elemAt ps 2;
+    in if len == 0
+      then [null offset len]
+      else null;
+
+  # }}}
+
+  # takes {{{
+
+  # Consume 'n' characters, or fail if there's not enough characters left.
+  # Return the characters consumed.
   #   :: Int -> Parser String
   take = n: ps:
     let
@@ -159,6 +239,38 @@ rec {
       numChars = endIx - offset;
     in [(substring offset numChars str) endIx (len - numChars)];
 
+  takeWhile1 = null;
+
+  # Apply a parser zero or more times until it fails, returning a list of the
+  # results
+  #   :: Parser a -> Parser [a]
+  many = parser:
+    let go = alt (bind parser (first: fmap (rest: [first] ++ rest) go)) (pure []);
+    in go;
+
+  # Apply a parser one or more times until it fails, returning a list of the
+  # resuls
+  #   :: Parser a -> NonEmpty a
+  many1 = parser:
+    bind parser (first: fmap (rest: [first] ++ rest) (many parser));
+
+  manyTill = null;
+
+  # }}}
+
+  # skips {{{
+
+  # Consume 'n' characters, or fail if there's not enough characters left.
+  #   :: Int -> Parser null
+  skip = n: ps:
+    let
+      str = elemAt ps 0;
+      offset = elemAt ps 1;
+      len = elemAt ps 2;
+    in if n <= len
+      then [null (offset + n) (len - n)]
+      else null;
+
   # Consume characters while the predicate holds
   #   :: (Char -> Bool) -> Parser null
   skipWhile = pred: ps:
@@ -176,57 +288,15 @@ rec {
       numChars = endIx - offset;
     in [null endIx (len - numChars)];
 
-  # Fails if there is still more input remaining, returns null otherwise
-  #   :: Parser null
-  eof = ps:
-    let
-      offset = elemAt ps 1;
-      len = elemAt ps 2;
-    in if len == 0
-      then [null offset len]
-      else null;
+  skipWhile1 = null;
 
-  # Apply a parser zero or more times until it fails, returning a list of the
-  # results
-  #   :: Parser a -> Parser [a]
-  many = parser:
-    let go = alt (bind parser (first: fmap (rest: [first] ++ rest) go)) (pure []);
-    in go;
-  # many = parser: ps:
-  #   let
-  #     str = elemAt ps 0;
-  #     go = ps2:
-  #       let res = parser ps2;
-  #       in if failed res
-  #         then [[] (elemAt ps2 1) (elemAt ps2 2)]
-  #         else
-  #           let res2 = go [str (elemAt res 1) (elemAt res 2)];
-  #           in [([(elemAt res 0)] ++ (elemAt res2 0)) (elemAt res2 1) (elemAt res2 2)];
-  #   in go ps;
+  skipMany = null;
 
-  # Apply a parser one or more times until it fails, returning a list of the
-  # resuls
-  #   :: Parser a -> NonEmpty a
-  many1 = parser:
-    bind parser (first: fmap (rest: [first] ++ rest) (many parser));
+  skipMany1 = null;
 
-  # Repeat a parser 'n' times, returning the results from each parse
-  #   :: Int -> Parser a -> Parser [a]
-  replicate = n: parser:
-    let go = m: if m == 0
-      then pure []
-      else bind parser (first: fmap (rest: [first] ++ rest) (go (m - 1)));
-    in go n;
+  # }}}
 
-  # 'notFollowedBy p' only succeeds when 'p' fails, and never consumes any input
-  #   :: Parser a -> Parser ()
-  notFollowedBy = parser: ps:
-    let
-      offset = elemAt ps 1;
-      len = elemAt ps 2;
-    in if failed (parser ps)
-      then [null offset len]
-      else null;
+  # peeks and drops {{{
 
   # Examine the next character without consuming it. Fails if there's no input
   # left.
@@ -265,4 +335,27 @@ rec {
       offset = elemAt ps 1;
       len = elemAt ps 2;
     in [null (offset + len) 0];
+
+  # }}}
+
+  # combinators {{{
+
+  # Sequence three parsers, 'before', 'after', and 'middle', running them in the
+  # obvious order and keeping the middle result.
+  # Example: parens = between (string "(") (string ")")
+  #
+  #   :: Parser a -> Parser b -> Parser c -> Parser c
+  between = before: after: middle: skipThen before (thenSkip middle after);
+
+  # Repeat a parser 'n' times, returning the results from each parse
+  #   :: Int -> Parser a -> Parser [a]
+  replicate = n: parser:
+    let go = m: if m == 0
+      then pure []
+      else bind parser (first: fmap (rest: [first] ++ rest) (go (m - 1)));
+    in go n;
+
+  # }}}
 }
+
+# vim: foldmethod=marker:
