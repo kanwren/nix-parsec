@@ -54,7 +54,8 @@ rec {
       len = elemAt res 2;
     in [ps offset len];
 
-  # Augment a parser to also return the number of characters it consuemd
+  # Augment a parser to also return the number of characters it consumed
+  #   :: Parser a -> Parser (Int, a)
   measure = parser: ps:
     let
       initialOffset = elemAt ps 1;
@@ -66,6 +67,21 @@ rec {
         newOffset = elemAt res 1;
         newLength = elemAt res 2;
       in [[(newOffset - initialOffset) value] newOffset newLength];
+
+  # Augment a parser to also return the characters it consumed
+  #   :: Parser a -> Parser (String, a)
+  withMatch = parser: ps:
+    let
+      str = elemAt ps 0;
+      oldOffset = elemAt ps 1;
+      res = parser ps;
+    in if failed res
+      then null
+      else let
+        value = elemAt res 0;
+        newOffset = elemAt res 1;
+        newLen = elemAt res 2;
+      in [[(substring oldOffset (newOffset - oldOffset) str) value] newOffset newLen];
 
   # }}}
 
