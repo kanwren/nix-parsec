@@ -8,7 +8,7 @@ in rec {
   #   - a parser that consumes block comments
   # None of these should be able to accept empty input
   #   :: Parser null -> Parser null -> Parser null -> Parser null
-  space = sp: lc: bc: p.skipMany (p.choice [sp lc bc]);
+  space = sp: lc: bc: p.skipMany (p.alt sp (p.alt lc bc));
 
   # Use a space-consuming parser to turn a parser into a lexeme parser
   #   :: Parser null -> Parser a -> Parser a
