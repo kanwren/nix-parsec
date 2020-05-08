@@ -357,7 +357,7 @@ rec {
       then [null (offset + n) (len - n)]
       else null;
 
-  # Consume characters while the predicate holds
+  # Consume zero or more characters while the predicate holds
   #   :: (Char -> Bool) -> Parser null
   skipWhile = pred: ps:
     let
@@ -374,7 +374,10 @@ rec {
       numChars = endIx - offset;
     in [null endIx (len - numChars)];
 
-  skipWhile1 = null;
+  # Consume one or more characters while the predicate holds
+  #   :: (Char -> Bool) -> Parser null
+  skipWhile1 = pred:
+    skipThen (satisfy pred) (skipWhile pred);
 
   # Run a parser zero or more times until it fails, discarding all the input
   # that it accepts.
