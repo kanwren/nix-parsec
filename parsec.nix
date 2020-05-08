@@ -244,7 +244,7 @@ rec {
 
   # Repeat a parser 'n' times, returning the results from each parse
   #   :: Int -> Parser a -> Parser [a]
-  count = n: parser:
+  count = n: assert n >= 0; parser:
     let go = m: if m == 0
       then pure []
       else bind parser (first: fmap (rest: [first] ++ rest) (go (m - 1)));
@@ -253,7 +253,7 @@ rec {
   # Consume 'n' characters, or fail if there's not enough characters left.
   # Return the characters consumed.
   #   :: Int -> Parser String
-  take = n: ps:
+  take = n: assert n >= 0; ps:
     let
       str = elemAt ps 0;
       offset = elemAt ps 1;
@@ -372,7 +372,7 @@ rec {
 
   # Consume 'n' characters, or fail if there's not enough characters left.
   #   :: Int -> Parser null
-  skip = n: ps:
+  skip = n: assert n >= 0; ps:
     let
       str = elemAt ps 0;
       offset = elemAt ps 1;
@@ -434,7 +434,7 @@ rec {
 
   # Examine the next character without consuming it. Fails if there's no input
   # left.
-  #   :: Int -> Parser String
+  #   :: Parser Char
   peek = ps:
     let
       str = elemAt ps 0;
@@ -488,7 +488,7 @@ rec {
   # Given a regex that matches a string, consume at most 'n' characters from the
   # input matching the regular expression. Return the matched text.
   #   :: Int -> String -> Parser String
-  matchingN = n: regex: ps:
+  matchingN = n: assert n >= 0; regex: ps:
     let
       str = elemAt ps 0;
       offset = elemAt ps 1;
