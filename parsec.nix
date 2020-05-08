@@ -214,6 +214,14 @@ rec {
       then [null offset len]
       else null;
 
+  # Return whether or not we're at the end of the input.
+  #   :: Parser Bool
+  atEnd = ps:
+    let
+      offset = elemAt ps 1;
+      len = elemAt ps 2;
+    in [(len == 0) offset len];
+
   # }}}
 
   # takes {{{
