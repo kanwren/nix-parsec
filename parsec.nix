@@ -415,10 +415,16 @@ rec {
   #   :: Parser a -> Parser null
   skipMany1 = parser: skipThen parser (skipMany parser);
 
+  # Repeat a parser zero or more times until the end parser succeeds. Discards
+  # consumed input.
+  #   :: Parser a -> Parser b -> Parser null
   skipTill = parser: end:
     let go = alt end (skipThen parser go);
     in void go;
 
+  # Repeat a parser one or more times until the end parser succeeds. Discards
+  # consumed input.
+  #   :: Parser a -> Parser b -> Parser null
   skipTill1 = parser: end:
     skipThen parser (skipTill parser end);
 
@@ -470,14 +476,18 @@ rec {
 
   # Given a regex that matches a string, consume characters matching that regex,
   # or fail if the next characters in the input do not match.
+  #
   # NOTE: This has to copy the rest of the string, so if you know the maximum
   # number of characters you may need, use "matchingN".
+  #
+  #   :: String -> Parser String
   matching = regex: ps:
     let len = elemAt ps 2;
     in matchingN len regex ps;
 
   # Given a regex that matches a string, consume at most 'n' characters from the
   # input matching the regular expression. Return the matched text.
+  #   :: Int -> String -> Parser String
   matchingN = n: regex: ps:
     let
       str = elemAt ps 0;
