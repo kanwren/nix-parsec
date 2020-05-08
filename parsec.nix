@@ -218,6 +218,14 @@ rec {
 
   # takes {{{
 
+  # Repeat a parser 'n' times, returning the results from each parse
+  #   :: Int -> Parser a -> Parser [a]
+  count = n: parser:
+    let go = m: if m == 0
+      then pure []
+      else bind parser (first: fmap (rest: [first] ++ rest) (go (m - 1)));
+    in go n;
+
   # Consume 'n' characters, or fail if there's not enough characters left.
   # Return the characters consumed.
   #   :: Int -> Parser String
@@ -284,6 +292,13 @@ rec {
   # }}}
 
   # separators {{{
+
+  # Sequence three parsers, 'before', 'after', and 'middle', running them in the
+  # obvious order and keeping the middle result.
+  # Example: parens = between (string "(") (string ")")
+  #
+  #   :: Parser a -> Parser b -> Parser c -> Parser c
+  between = before: after: middle: skipThen before (thenSkip middle after);
 
   # Parse zero or more occurrances of the first parser, separated by the second
   # parser. Returns a list of results of the first parser.
@@ -418,25 +433,6 @@ rec {
       offset = elemAt ps 1;
       len = elemAt ps 2;
     in [null (offset + len) 0];
-
-  # }}}
-
-  # combinators {{{
-
-  # Sequence three parsers, 'before', 'after', and 'middle', running them in the
-  # obvious order and keeping the middle result.
-  # Example: parens = between (string "(") (string ")")
-  #
-  #   :: Parser a -> Parser b -> Parser c -> Parser c
-  between = before: after: middle: skipThen before (thenSkip middle after);
-
-  # Repeat a parser 'n' times, returning the results from each parse
-  #   :: Int -> Parser a -> Parser [a]
-  replicate = n: parser:
-    let go = m: if m == 0
-      then pure []
-      else bind parser (first: fmap (rest: [first] ++ rest) (go (m - 1)));
-    in go n;
 
   # }}}
 }
