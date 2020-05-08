@@ -1,6 +1,12 @@
 let
   p = import ./parsec.nix;
 
+  escapeToChar = c:
+    if c == "n" then "\n"
+    else if c == "r" then "\r"
+    else if c == "t" then "\t"
+    else c;
+
 in rec {
   # Build a space-consuming parser out of:
   #   - a parser that consumes spaces
@@ -24,7 +30,7 @@ in rec {
   # larger numbers is not guaranteed.
   decimal =
     let
-      toInt = builtins.fromJSON;
+      toInt = builtins.fromJSON; # Hacky, but efficient
       int = p.fmap toInt (p.matchingN 19 "[[:digit:]]+");
       leadingZeros = p.skipWhile (c: c == "0");
     in p.alt
@@ -42,4 +48,18 @@ in rec {
       minus = p.fmap (_: -1) (p.string "-");
       sign = p.option 1 (p.alt minus plus);
     in p.bind sign (res: p.fmap (n: res * n) parser);
+
+  # Parses a Nix character literal, without quotes. Handles character escaping.
+  #
+  # NOTE: Only supports \n, \r, and \t. All other characters after a backslash
+  # will be returned as-is; e.g., "\a" becomes "a".
+  charLit =
+    p.bind p.anyChar
+    (c: if c == "\\"
+      then p.fmap escapeToChar p.anyChar
+      else p.pure c);
+
+  # Parses a basic double-quoted string literal, handling escaped inner quotes.
+  stringLit = p.fmap (builtins.concatStringsSep "")
+    (p.skipThen (p.string "\"") (p.manyTill charLit (p.string "\"")));
 }
