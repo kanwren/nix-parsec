@@ -111,7 +111,7 @@ rec {
 
   # Ignore the results of a parser
   #   :: Parser a -> Parser null
-  void = parser: fmap (_: null) parser;
+  void = fmap (_: null);
 
   # }}}
 
@@ -366,7 +366,7 @@ rec {
       len = elemAt ps 2;
       # Search for the next offset that violates the predicate
       go = ix:
-        if ix >= len || !pred (substring str ix 1)
+        if ix >= len || !pred (substring ix 1 str)
           then ix
           else go (ix + 1);
       endIx = go offset;
@@ -388,9 +388,12 @@ rec {
   #   :: Parser a -> Parser null
   skipMany1 = parser: skipThen parser (skipMany parser);
 
-  skipTill = null;
+  skipTill = parser: end:
+    let go = alt end (skipThen parser go);
+    in void go;
 
-  skipTill1 = null;
+  skipTill1 = parser: end:
+    skipThen parser (skipTill parser end);
 
   # }}}
 
@@ -433,6 +436,33 @@ rec {
       offset = elemAt ps 1;
       len = elemAt ps 2;
     in [null (offset + len) 0];
+
+  # }}}
+
+  # regex {{{
+
+  # Given a regex that matches a string, consume characters matching that regex,
+  # or fail if the next characters in the input do not match.
+  # NOTE: This has to copy the rest of the string, so if you know the maximum
+  # number of characters you may need, use "matchingN".
+  matching = regex: ps:
+    let len = elemAt ps 2;
+    in matchingN len regex ps;
+
+  # Given a regex that matches a string, consume at most 'n' characters from the
+  # input matching the regular expression. Return the matched text.
+  matchingN = n: regex: ps:
+    let
+      str = elemAt ps 0;
+      offset = elemAt ps 1;
+      len = elemAt ps 2;
+      result = match ("(" + regex + ").*") (substring offset n str);
+    in if result == null
+      then null
+      else let
+        matchText = elemAt result 0;
+        matchLen = stringLength matchText;
+      in [matchText (offset + matchLen) (len - matchLen)];
 
   # }}}
 }
