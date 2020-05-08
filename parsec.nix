@@ -313,13 +313,19 @@ rec {
   # ended by the second parser. Returns a list of result of the first parser.
   #   :: Parser a -> Parser b -> Parser [a]
   sepEndBy = parser: end:
-    null;
+    alt (sepEndBy1 parser end) (pure []);
 
   # Parse one or more occurrances of the first parser, separated and optionally
   # ended by the second parser. Returns a list of result of the first parser.
   #   :: Parser a -> Parser b -> Parser (NonEmpty a)
   sepEndBy1 = parser: end:
-    null;
+    let
+      go = alt
+        (skipThen end (alt
+          (bind parser (first: fmap (rest: [first] ++ rest) go))
+          (pure [])))
+        (pure []);
+    in bind parser (first: fmap (rest: [first] ++ rest) go);
 
   # }}}
 
