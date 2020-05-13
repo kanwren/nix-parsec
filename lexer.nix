@@ -16,6 +16,23 @@ in rec {
   #   :: Parser null -> Parser null -> Parser null -> Parser null
   space = sp: lc: bc: skipMany (alt sp (alt lc bc));
 
+  # Given the delimiter marking the start of a line comment, build a parser that
+  # consume a line comment
+  #   :: String -> Parser null
+  skipLineComment = start:
+    let
+      prefix = string start;
+    in skipThen prefix (skipWhile (x: x != "\n"));
+
+  # Given start and end delimiters of a block comment, build a parser that
+  # consumes a block comment
+  #   :: String -> String -> Parser null
+  skipBlockComment = start: end:
+    let
+      prefix = string start;
+      suffix = string end;
+    in skipThen prefix (skipTill anyChar suffix);
+
   # Use a space-consuming parser to turn a parser into a lexeme parser
   #   :: Parser null -> Parser a -> Parser a
   lexeme = sc: parser: thenSkip parser sc;
