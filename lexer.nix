@@ -48,7 +48,7 @@ in rec {
   decimal =
     let
       toInt = builtins.fromJSON; # Hacky, but efficient
-      int = fmap toInt (matchingN 19 "[[:digit:]]+");
+      int = fmap (x: toInt (builtins.elemAt x 0)) (matchingN 19 "[[:digit:]]+");
       leadingZeros = skipWhile (c: c == "0");
     in alt
       # Nonzero number with leading zeros

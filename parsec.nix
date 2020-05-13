@@ -475,19 +475,21 @@ rec {
   # regex {{{
 
   # Given a regex that matches a string, consume characters matching that regex,
-  # or fail if the next characters in the input do not match.
+  # or fail if the next characters in the input do not match. Return the matched
+  # text, followed by any capture groups from the match.
   #
   # NOTE: This has to copy the rest of the string, so if you know the maximum
   # number of characters you may need, use "matchingN".
   #
-  #   :: String -> Parser String
+  #   :: String -> Parser (NonEmpty String)
   matching = regex: ps:
     let len = elemAt ps 2;
     in matchingN len regex ps;
 
   # Given a regex that matches a string, consume at most 'n' characters from the
-  # input matching the regular expression. Return the matched text.
-  #   :: Int -> String -> Parser String
+  # input matching the regular expression. Return the matched text, followed by
+  # any capture groups from the match.
+  #   :: Int -> String -> Parser (NonEmpty String)
   matchingN = n: assert n >= 0; regex: ps:
     let
       str = elemAt ps 0;
@@ -499,7 +501,7 @@ rec {
       else let
         matchText = elemAt result 0;
         matchLen = stringLength matchText;
-      in [matchText (offset + matchLen) (len - matchLen)];
+      in [result (offset + matchLen) (len - matchLen)];
 
   # }}}
 }
