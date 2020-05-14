@@ -16,11 +16,13 @@ Don't ask what I actually needed this for.
 
 ### Usage
 
-Include by fetching via normal means. At the top level, two attribute sets are
+Include by fetching via normal means. At the top level, three attribute sets are
 exported:
 
 - `parsec`: Parser combinators and functions to run parsers
 - `lexer`: Combinators for parsing token-related things
+- `regex`: Helper functions for working with regular expressions
 
-The API roughly corresponds to that of Haskell's `megaparsec` library.
+The parsing/lexing APIs roughly corresponds to those of Haskell's `megaparsec`
+library.
 
