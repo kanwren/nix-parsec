@@ -33,13 +33,18 @@ rec {
   # If the parser did not consume all of its input, this will still succeed. If
   # you want to make sure all input has been consume, use 'eof'.
   #
-  #   :: Parser a -> String -> [a]
+  #   :: Parser a -> String -> Maybe [a]
   runParser = parser: str:
     let res = parser [str 0 (stringLength str)];
-    in if failed res then [] else [(elemAt res 0)];
+    in if failed res then null else [(elemAt res 0)];
 
   # Did a parser fail?
+  #
+  # Note: this can be used to check both the result of 'runParser' and a
+  # parser's raw result.
+  #
   #   :: Maybe (a, Int, Int) -> Bool
+  #   :: Maybe [a] -> Bool
   failed = ps: ps == null;
 
   # }}}
