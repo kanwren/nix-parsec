@@ -25,12 +25,12 @@ rec {
   # the resulting capture groups to determine the substitution text.
   #
   # Example:
-  #   replaceFunc "([[:digit:]])" (g: builtins.head g + "0") "abc123"
+  #   substituteWith "([[:digit:]])" (g: builtins.head g + "0") "abc123"
   #   => "abc102030"
   #
   # Type:
   #   :: Regex -> ([String] -> String) -> String -> String
-  replaceFunc = regex: f: str:
+  substituteWith = regex: f: str:
     let
       groups = builtins.split regex str;
       replaceGroup = group:
@@ -43,12 +43,12 @@ rec {
   # groups, the replacing string can refer to them with \0, \1, etc.
   #
   # Example:
-  #   replace "[[:digit:]]" "x" "abc123"
+  #   substitute "[[:digit:]]" "x" "abc123"
   #   => "abcxxx"
   #
   # Type:
   #   :: Regex -> String -> String -> String
-  replace = regex: rep:
+  substitute = regex: rep:
     let substituteCaptures = replaceCaptures rep;
-    in replaceFunc regex substituteCaptures;
+    in substituteWith regex substituteCaptures;
 }
