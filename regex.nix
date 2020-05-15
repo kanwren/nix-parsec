@@ -42,9 +42,12 @@ rec {
   # Perform regex substitution on a string. If the regex contains capture
   # groups, the replacing string can refer to them with \0, \1, etc.
   #
-  # Example:
+  # Examples:
   #   substitute "[[:digit:]]" "x" "abc123"
   #   => "abcxxx"
+  #
+  #   substitute "([[:digit:]])([[:digit:]])" ''\1\0'' "123456"
+  #   => "214365"
   #
   # Type:
   #   :: Regex -> String -> String -> String
