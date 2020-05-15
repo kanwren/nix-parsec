@@ -33,6 +33,16 @@ in rec {
       suffix = string end;
     in skipThen prefix (skipTill anyChar suffix);
 
+  # Given start and end delimiters of a block comment, build a parser that
+  # consumes a possibly nested block comment
+  #   :: String -> String -> Parser null
+  skipBlockCommentNested = start: end:
+    let
+      prefix = string start;
+      suffix = string end;
+      go = skipThen prefix (skipTill (alt go anyChar) suffix);
+    in go;
+
   # Use a space-consuming parser to turn a parser into a lexeme parser
   #   :: Parser null -> Parser a -> Parser a
   lexeme = sc: parser: thenSkip parser sc;
