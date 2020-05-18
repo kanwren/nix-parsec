@@ -393,9 +393,10 @@ rec {
       str = elemAt ps 0;
       offset = elemAt ps 1;
       len = elemAt ps 2;
+      strLen = stringLength str;
       # Search for the next offset that violates the predicate
       go = ix:
-        if ix >= len || !pred (substring ix 1 str)
+        if ix >= strLen || !pred (substring ix 1 str)
           then ix
           else go (ix + 1);
       endIx = go offset;
