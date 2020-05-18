@@ -1,4 +1,7 @@
-with (import ./parsec.nix);
+{ parsec
+}:
+
+with parsec;
 
 let
   escapeToChar = c:
