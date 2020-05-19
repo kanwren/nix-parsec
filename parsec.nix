@@ -130,9 +130,31 @@ rec {
   #   :: Parser a -> Parser b -> Parser a
   thenSkip = parser1: parser2: bind parser1 (x: fmap (_: x) parser2);
 
+  # Run a list of parsers in sequence, collecting their results
+  #   :: [Parser a] -> Parser [a]
+  sequence = xs:
+    let
+      len = length xs;
+      go = n:
+        if n >= len
+          then pure []
+          else bind (elemAt xs n) (first: fmap (rest: [first] ++ rest) (go (n + 1)));
+    in go 0;
+
   # Ignore the results of a parser
   #   :: Parser a -> Parser null
   void = fmap (_: null);
+
+  # Like 'sequence', but ignore the outputs of the parsers
+  #   :: [Parser a] -> Parser null
+  sequence_ = xs:
+    let
+      len = length xs;
+      go = n:
+        if n >= len
+          then pure null
+          else skipThen (elemAt xs n) (go (n + 1));
+    in go 0;
 
   # }}}
 
