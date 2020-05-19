@@ -4,6 +4,11 @@
 # - The parameters are the source, the offset, and the length
 # - The result is the value produced, the new offset, and the new length
 # - If a failure occurs, the result will be 'null'
+#
+# Note that in the types, 'Maybe a' denotes a value that is either null or a
+# singleton list containing a value of type 'a'. 'NonEmpty a' denotes a list
+# containing one or more values of type 'a'. 'null' denotes the singleton type
+# containing only the value 'null'.
 
 with builtins;
 
@@ -33,7 +38,7 @@ rec {
   # If the parser did not consume all of its input, this will still succeed. If
   # you want to make sure all input has been consume, use 'eof'.
   #
-  #   :: Parser a -> String -> Maybe [a]
+  #   :: Parser a -> String -> Maybe a
   runParser = parser: str:
     let res = parser [str 0 (stringLength str)];
     in if failed res then null else [(elemAt res 0)];
@@ -41,10 +46,9 @@ rec {
   # Did a parser fail?
   #
   # Note: this can be used to check both the result of 'runParser' and a
-  # parser's raw result.
+  # parser's raw result, as both return either null or a singleton list.
   #
-  #   :: Maybe (a, Int, Int) -> Bool
-  #   :: Maybe [a] -> Bool
+  #   :: Maybe a -> Bool
   failed = ps: ps == null;
 
   # }}}
@@ -122,11 +126,13 @@ rec {
         len = elemAt res1 2;
       in (f val) [str offset len];
 
-  # Sequence two parsers, ignoring the result of the first one
+  # Sequence two parsers, ignoring the result of the first one, like '*>' in
+  # Haskell
   #   :: Parser a -> Parser b -> Parser b
   skipThen = parser1: parser2: bind parser1 (_: parser2);
 
-  # Sequence two parsers, ignoring the result of the second one
+  # Sequence two parsers, ignoring the result of the second one, like '<*' in
+  # Haskell
   #   :: Parser a -> Parser b -> Parser a
   thenSkip = parser1: parser2: bind parser1 (x: fmap (_: x) parser2);
 
