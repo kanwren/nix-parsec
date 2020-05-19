@@ -24,5 +24,5 @@ exported:
 - `regex`: Helper functions for working with regular expressions
 
 The parsing/lexing APIs roughly corresponds to those of Haskell's `megaparsec`
-library.
+library. See `examples/` for some example programs.
 
