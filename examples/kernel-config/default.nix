@@ -1,9 +1,9 @@
-# Example: parse a linux kernel config file, like 'test.config' in this
+# Example: parse a linux kernel config file, like 'surface-4.19.config' in this
 # directory
 #
 # Load in nix repl and test, e.g.:
 #
-# nix-repl> parseConfigFile ./test.config
+# nix-repl> parseConfigFile ./surface-4.19.config
 # [ { ... } ]
 
 { pkgs ? import <nixpkgs> {}
