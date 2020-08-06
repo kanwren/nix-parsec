@@ -16,13 +16,28 @@ Don't ask what I actually needed this for.
 
 ### Usage
 
-Include by fetching via normal means. At the top level, three attribute sets are
-exported:
+Include by fetching via usual means (`fetchTarball`, `fetchFromGitHub`, etc.):
+
+```nix
+let
+  version = "v0.1.0";
+  sha256 = "...";
+
+  nix-parsec = import (builtins.fetchTarball {
+    url = "https://github.com/nprindle/nix-parsec/archive/${version}.tar.gz";
+    inherit sha256;
+  });
+
+  inherit (nix-parsec) parsec lexer;
+in ...
+```
+
+At the top level, three attribute sets are exported:
 
 - `parsec`: Parser combinators and functions to run parsers
 - `lexer`: Combinators for parsing token-related things
 - `regex`: Helper functions for working with regular expressions
 
 The parsing/lexing APIs roughly corresponds to those of Haskell's `megaparsec`
-library. See `examples/` for some example programs.
+library. See `examples/` for some example parsers.
 
