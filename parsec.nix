@@ -177,7 +177,7 @@ rec {
   # options and failure {{{
 
   # Parser that always fails (the identity under 'alt')
-  fail = failWith { source = "parsec.fail"; };
+  fail = failWith { context = "parsec.fail"; };
 
   # Parser that always fails with the given error
   #   :: e -> Parser a
@@ -196,8 +196,8 @@ rec {
   # possible error information is irrelevant first
   annotateWith = e: annotate (x: x // e);
 
-  # Add a new source annotation to an error, keeping the old error entirely
-  annotateSource = s: annotate (e: { source = s; error = e; });
+  # Add a new context annotation to an error, keeping the old error entirely
+  annotateContext = s: annotate (e: { context = s; error = e; });
 
   # Add information about the current offset to a parser
   #
@@ -218,7 +218,11 @@ rec {
       res2 = parser2 ps;
     in if failed res1
       then if failed res2
-        then { source = "parsec.alt"; error = [res1 res2]; }
+        then {
+          context = "parsec.alt";
+          msg = "expected one of these to succeed";
+          error = [res1 res2];
+        }
         else res2
       else res1);
 
@@ -241,7 +245,7 @@ rec {
       firstSuccess = foldr (x: rest: if failed x then rest else x) null results;
     in if firstSuccess == null
       then {
-        source = "parsec.choice";
+        context = "parsec.choice";
         msg = "expected one of these to be satisfied";
         error = results;
       }
@@ -261,7 +265,7 @@ rec {
       c = substring offset 1 str; # the next character
     in if len > 0 && pred c
       then [c (offset + 1) (len - 1)]
-      else { source = "parsec.satisfy"; });
+      else { context = "parsec.satisfy"; });
 
   # Consumes a character if it satisfies a predicate, applying a function to the
   # result.
@@ -274,18 +278,18 @@ rec {
       c = substring offset 1 str; # the next character
     in if len > 0 && pred c
       then [(f c) (offset + 1) (len - 1)]
-      else { source = "parsec.satisfyWith"; });
+      else { context = "parsec.satisfyWith"; });
 
   # Consume any character
   #   :: Parser Char
   anyChar = withOffsetInfo (annotateWith {
-    source = "parsec.anyChar";
+    context = "parsec.anyChar";
   } (satisfy (_: true)));
 
   # Consume any character except a given character
   #   :: Char -> Parser Char
   anyCharBut = c: withOffsetInfo (annotateWith {
-    source = "parsec.anyCharBut";
+    context = "parsec.anyCharBut";
     error = "expected any char except ${c}";
   } (satisfy (x: x != c)));
 
@@ -301,7 +305,7 @@ rec {
     in if len >= prefixLen && substring offset prefixLen str == pr
       then [pr (offset + prefixLen) (len - prefixLen)]
       else {
-        source = "parsec.string";
+        context = "parsec.string";
         msg = "expected string '${pr}'";
       });
 
@@ -313,7 +317,7 @@ rec {
       len = elemAt ps 2;
     in if failed (parser ps)
       then [null offset len]
-      else { source = "parsec.notFollowedBy"; });
+      else { context = "parsec.notFollowedBy"; });
 
   # Fails if there is still more input remaining, returns null otherwise
   #   :: Parser null
@@ -324,7 +328,7 @@ rec {
     in if len == 0
       then [null offset len]
       else {
-        source = "parsec.eof";
+        context = "parsec.eof";
         msg = "expected end of input";
       });
 
@@ -349,7 +353,7 @@ rec {
         else bind parser (first: fmap (rest: [first] ++ rest) (go (m - 1)));
       in go n;
     in annotate (e: {
-      source = "parsec.count";
+      context = "parsec.count";
       msg = "expected ${toString n} occurrances";
       error = e;
     }) p';
@@ -365,7 +369,7 @@ rec {
     in if n <= len
       then [(substring offset n str) (offset + n) (len - n)]
       else {
-        source = "parsec.take";
+        context = "parsec.take";
         error = "expected ${toString n} characters, but only got ${toString len}";
       });
 
@@ -394,7 +398,7 @@ rec {
   takeWhile1 = pred:
     let p' = bind (satisfy pred) (first: fmap (rest: first + rest) (takeWhile pred));
     in annotateWith {
-      source = "parsec.takeWhile1";
+      context = "parsec.takeWhile1";
       msg = "expected at least one character matching the predicate";
     } p';
 
@@ -411,7 +415,7 @@ rec {
   many1 = parser:
     let p' = bind parser (first: fmap (rest: [first] ++ rest) (many parser));
     in annotate (e: {
-      source = "parsec.many1";
+      context = "parsec.many1";
       msg = "expected one or more occurrences";
       error = e;
     }) p';
@@ -423,14 +427,14 @@ rec {
     let p' =
       let go = alt (fmap (_: []) end) (bind parser (first: fmap (rest: [first] ++ rest) go));
       in go;
-    in annotateSource "parsec.manyTill" p';
+    in annotateContext "parsec.manyTill" p';
 
   # Repeat a parser one or more times until the end parser succeeds. Returns a
   # list of the results of the first parser.
   #   :: Parser a -> Parser b -> Parser (NonEmpty a)
   manyTill1 = parser: end:
     let p' = bind parser (first: fmap (rest: [first] ++ rest) (manyTill parser end));
-    in annotateSource "parsec.manyTill1" p';
+    in annotateContext "parsec.manyTill1" p';
 
   # }}}
 
@@ -454,7 +458,7 @@ rec {
   #   :: Parser a -> Parser b -> Parser (NonEmpty a)
   sepBy1 = parser: end:
     let p' = bind parser (first: fmap (rest: [first] ++ rest) (many (skipThen end parser)));
-    in annotateSource "parsec.sepBy1" p';
+    in annotateContext "parsec.sepBy1" p';
 
   # Parse zero or more occurrences of the first parser, separated and ended by
   # the second parser. Returns a list of results of the first parser. Cannot
@@ -468,7 +472,7 @@ rec {
   #   :: Parser a -> Parser b -> Parser (NonEmpty a)
   endBy1 = parser: end:
     let p' = many1 (thenSkip parser end);
-    in annotateSource "parsec.endBy1" p';
+    in annotateContext "parsec.endBy1" p';
 
   # Parse zero or more occurrences of the first parser, separated and optionally
   # ended by the second parser. Returns a list of result of the first parser.
@@ -489,7 +493,7 @@ rec {
             (pure [])))
           (pure []);
       in bind parser (first: fmap (rest: [first] ++ rest) go);
-    in annotateSource "parsec.sepEndBy1" p';
+    in annotateContext "parsec.sepEndBy1" p';
 
   # }}}
 
@@ -505,7 +509,7 @@ rec {
     in if n <= len
       then [null (offset + n) (len - n)]
       else {
-        source = "parsec.skip";
+        context = "parsec.skip";
         error = "expected ${toString n} characters, but only got ${toString len}";
       };
 
@@ -531,7 +535,7 @@ rec {
   #   :: (Char -> Bool) -> Parser null
   skipWhile1 = pred:
     let p' = skipThen (satisfy pred) (skipWhile pred);
-    in annotateSource "parsec.skipWhile1" p';
+    in annotateContext "parsec.skipWhile1" p';
 
   # Run a parser zero or more times until it fails, discarding all the input
   # that it accepts. Cannot fail.
@@ -545,7 +549,7 @@ rec {
   #   :: Parser a -> Parser null
   skipMany1 = parser:
     let p' = skipThen parser (skipMany parser);
-    in annotateSource "parsec.skipMany1" p';
+    in annotateContext "parsec.skipMany1" p';
 
   # Repeat a parser zero or more times until the end parser succeeds. Discards
   # consumed input.
@@ -554,14 +558,14 @@ rec {
     let p' =
       let go = alt end (skipThen parser go);
       in void go;
-    in annotateSource "parsec.skipTill" p';
+    in annotateContext "parsec.skipTill" p';
 
   # Repeat a parser one or more times until the end parser succeeds. Discards
   # consumed input.
   #   :: Parser a -> Parser b -> Parser null
   skipTill1 = parser: end:
     let p' = skipThen parser (skipTill parser end);
-    in annotateSource "parsec.skipTill1" p';
+    in annotateContext "parsec.skipTill1" p';
 
   # }}}
 
@@ -578,7 +582,7 @@ rec {
     in if len > 0
       then [(substring offset 1 str) offset len]
       else {
-        source = "parsec.peek";
+        context = "parsec.peek";
         msg = "expected a character";
       };
 
@@ -628,7 +632,7 @@ rec {
   # number of characters you may need, use "matchingN".
   #
   #   :: String -> Parser (NonEmpty String)
-  matching = regex: annotateSource "parsec.matching" (ps:
+  matching = regex: annotateContext "parsec.matching" (ps:
     let len = elemAt ps 2;
     in matchingN len regex ps);
 
@@ -644,7 +648,7 @@ rec {
       result = match ("(" + regex + ").*") (substring offset n str);
     in if result == null
       then {
-        source = "parsec.matchingN";
+        context = "parsec.matchingN";
         error = "expected text matching '${regex}'";
       }
       else let
