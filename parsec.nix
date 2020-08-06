@@ -204,7 +204,7 @@ rec {
   # NOTE: this overrides any old offset info, which could make it confusing
   # where the error actually happened.
   withOffsetInfo = parser:
-    bind state (info: annotateWith { offset = elemAt info 1; } parser);
+    bind state (info: annotateWith { str = elemAt info 0; offset = elemAt info 1; } parser);
 
   # Override an error message for a parser
   label = e: annotate (_: e);
