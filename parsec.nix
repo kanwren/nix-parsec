@@ -278,17 +278,16 @@ rec {
 
   # Consume any character
   #   :: Parser Char
-  anyChar = annotateWith { source = "parsec.anyChar"; }
-    (satisfy (_: true));
+  anyChar = withOffsetInfo (annotateWith {
+    source = "parsec.anyChar";
+  } (satisfy (_: true)));
 
   # Consume any character except a given character
   #   :: Char -> Parser Char
-  anyCharBut = c:
-    annotateWith {
-      source = "parsec.anyCharBut";
-      error = "expected any char except ${c}";
-    }
-    (satisfy (x: x != c));
+  anyCharBut = c: withOffsetInfo (annotateWith {
+    source = "parsec.anyCharBut";
+    error = "expected any char except ${c}";
+  } (satisfy (x: x != c)));
 
   # Given a string, try to consume it from the input and return it if it
   # succeeds. If it fails, DON'T consume any input.
