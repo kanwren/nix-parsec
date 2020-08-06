@@ -114,6 +114,14 @@ rec {
   #   :: a -> Parser a
   pure = x: ps: [x (elemAt ps 1) (elemAt ps 2)];
 
+  # Applicative functor application
+  #   :: Parser (a -> b) -> Parser a -> Parser b
+  ap = p1: p2: bind p1 (f: fmap f p2);
+
+  # Lift a two-argument function over two parsers in sequence.
+  #   :: Parser (a -> b) -> Parser a -> Parser b
+  lift2 = f: p1: p2: ap (fmap f p1) p2;
+
   # Monadic bind; sequence two parsers together
   #   :: Parser a -> (a -> Parser b) -> Parser b
   bind = parser: f: ps:
