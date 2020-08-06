@@ -3,7 +3,7 @@
 # Load in nix repl and test, e.g.:
 #
 # nix-repl> :p parseUuid "123e4567-e89b-12d3-a456-426614174000"
-# [ [ "123e4567" "e89b" "12d3" "a456" "426614174000" ] ]
+# { type = "success"; value = [ "123e4567" "e89b" "12d3" "a456" "426614174000" ]; }
 
 { pkgs ? import <nixpkgs> {}
 }:

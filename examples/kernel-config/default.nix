@@ -4,7 +4,7 @@
 # Load in nix repl and test, e.g.:
 #
 # nix-repl> parseConfigFile ./surface-4.19.config
-# [ { ... } ]
+# { type = "success"; value = ...; }
 
 { pkgs ? import <nixpkgs> {}
 }:

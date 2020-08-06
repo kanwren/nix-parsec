@@ -4,7 +4,7 @@
 # Load in nix repl and test, e.g.:
 #
 # nix-repl> parseParens "((())())"
-# 3
+# { type = "success"; value = 3; }
 
 let
   nix-parsec = import ../../default.nix;
