@@ -32,11 +32,10 @@ let
 in ...
 ```
 
-At the top level, three attribute sets are exported:
+At the top level, two attribute sets are exported:
 
 - `parsec`: Parser combinators and functions to run parsers
 - `lexer`: Combinators for parsing token-related things
-- `regex`: Helper functions for working with regular expressions
 
 The parsing/lexing APIs roughly corresponds to those of Haskell's `megaparsec`
 library. See `examples/` for some example parsers.
