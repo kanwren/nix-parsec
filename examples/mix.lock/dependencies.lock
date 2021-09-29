@@ -1,0 +1,6 @@
+%{
+  "accept": {:hex, :accept, "0.3.5", "b33b127abca7cc948bbe6caa4c263369abf1347cfa9d8e699c6d214660f10cd1", [:rebar3], [], "hexpm", "11b18c220bcc2eab63b5470c038ef10eb6783bcb1fcdb11aa4137defa5ac1bb8"},
+  "base62": {:hex, :base62, "1.2.2", "85c6627eb609317b70f555294045895ffaaeb1758666ab9ef9ca38865b11e629", [:mix], [{:custom_base, "~> 0.2.1", [hex: :custom_base, repo: "hexpm", optional: false]}], "hexpm", "d41336bda8eaa5be197f1e4592400513ee60518e5b9f4dcf38f4b4dae6f377bb"},
+  "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
+  "bbcode": {:git, "https://git.pleroma.social/pleroma/elixir-libraries/bbcode.git", "f2d267675e9a7e1ad1ea9beb4cc23382762b66c2", [ref: "v0.2.0"]},
+}
