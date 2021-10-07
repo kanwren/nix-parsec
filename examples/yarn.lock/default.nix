@@ -50,12 +50,14 @@ rec {
   dependencyNames = thenSkip (sepBy (alt quotedString unquotedString) (string ", ")) (string ":\n");
 
   dependencyAttrs = bind version (parsedVersion:
-    bind resolved (parsedResolved:
+    bind (optional resolved) (parsedResolved:
       bind (optional integrity) (parsedIntegrity:
         bind (optional dependencies) (parsedDependencies:
           bind (optional optionalDependencies) (parsedOptionalDependencies:
             pure (
-              { version = parsedVersion; resolved = parsedResolved; }
+              { version = parsedVersion; }
+              //
+              (if parsedResolved == [ ] then { } else { resolved = builtins.head parsedResolved; })
               //
               (if parsedIntegrity == [ ] then { } else { integrity = builtins.head parsedIntegrity; })
               //
