@@ -2,14 +2,13 @@
 #
 # Load in nix repl and test, e.g.:
 #
-# nix-repl> parseConfigFile ./yarn.lock
+# nix-repl> parseYarnLock ./yarn.lock
 # { type = "success"; value = ...; }
 
 { pkgs ? import <nixpkgs> { } }:
 
 let
   nix-parsec = import ../../default.nix;
-  inherit (nix-parsec) lexer;
   inherit (pkgs) lib;
 in
 
@@ -19,22 +18,20 @@ rec {
   inherit (nix-parsec) parsec;
 
   # Skip spaces and line comments and newlines
-  spaceComments = lexer.space
-    (skipWhile1 (c: c == " " || c == "\t" || c == "\n"))
-    (lexer.skipLineComment "#")
-    fail;
+  skipEmptyLinesAndComments = 
+      skipMany (alt
+        (skipWhile1 (c: c == " " || c == "\t" || c == "\n"))
+        (skipThen (string "#") (skipWhile (x: x != "\n")))
+      );
 
   charInsideQuotes = c: c != "\"";
   charOutsideQuotes = c: c != "\"" && c != "\n" && c != " " && c != "," && c != ":";
   unquotedString = takeWhile1 charOutsideQuotes;
   newLine = string "\n";
 
-  # use the nix-parsec quotedString
   quotedString = between (string "\"") (string "\"") (takeWhile1 charInsideQuotes);
 
-  # TODO add the relevant fmap to add the attributes
   version = skipThen (string "  version ") (thenSkip quotedString newLine);
-  # TODO instead of nextLine use an exact count of space and newline ?:w
   resolved = skipThen (string "  resolved ") (thenSkip quotedString newLine);
   integrity = skipThen (string "  integrity ") (thenSkip unquotedString newLine);
 
@@ -75,7 +72,7 @@ rec {
         dependencyAttrs);
 
   configFile =
-    (skipThen spaceComments
+    (skipThen skipEmptyLinesAndComments
       (thenSkip (sepBy group newLine) eof));
 
   parseYarnLock = path: runParser configFile (builtins.readFile path);
