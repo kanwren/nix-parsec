@@ -19,23 +19,6 @@ with builtins;
 with nix-parsec.parsec;
 
 let
-  Spaces = skipWhile (c: c == " ");
-  lexeme = lexer.lexeme Spaces;
-  symbol = lexer.symbol Spaces;
-
-  # all chars except minus
-  CommentChars =
-    let isChar = c: match "[^-]" c != null; in
-    lexeme (takeWhile1 isChar)
-  ;
-
-  # all chars
-  Chars =
-    let isChar = c: match "." c != null; in
-    lexeme (takeWhile1 isChar)
-  ;
-
-  concatStrings = parser: bind parser (values: pure (lib.concatStrings values));
 
   # Consume zero or more characters until the stop string,
   # returning the consumed characters. Cannot fail.
