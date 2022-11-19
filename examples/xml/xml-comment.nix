@@ -1,12 +1,11 @@
 /*
 
 xml comment parser
-a short demo for parsec.peek
 
-<doc><!-- asdf --></doc>
+<document><!-- comment --></document>
 
 xml comments can have arbitrary content, except the string "-->"
-so we need a lookahead of 3 chars = (peekN 3)
+so we need a lookahead of 3 chars
 
 */
 
@@ -16,60 +15,71 @@ let
   inherit (nix-parsec) lexer;
 in
 
+with builtins;
 with nix-parsec.parsec;
 
 let
   Spaces = skipWhile (c: c == " ");
   lexeme = lexer.lexeme Spaces;
+  symbol = lexer.symbol Spaces;
 
-  # Examine the next N characters without consuming them.
-  # Fails if there is not enough input left (TODO verify).
-  #   :: Parser String
-  peekN = n: ps:
-    let
-      str = builtins.elemAt ps 0;
-      offset = builtins.elemAt ps 1;
-      len = builtins.elemAt ps 2;
-    in if len >= n
-      then [(builtins.substring offset n str) offset len]
-      else {
-        context = "parsec.peek";
-        msg = "expected ${n} characters";
-      };
+  # all chars except minus
+  CommentChars =
+    let isChar = c: match "[^-]" c != null; in
+    lexeme (takeWhile1 isChar)
+  ;
+
+  # all chars
+  Chars =
+    let isChar = c: match "." c != null; in
+    lexeme (takeWhile1 isChar)
+  ;
 
   concatStrings = parser: bind parser (values: pure (lib.concatStrings values));
 
-  # init = all except last. fix: cannot coerce null to a string
-  concatInitStrings = parser: bind parser (values: pure (lib.concatStrings (lib.lists.init values)));
+  # Consume zero or more characters until the stop string,
+  # returning the consumed characters. Cannot fail.
+  # based on parsec.takeWhile
+  #   :: String -> Parser String
+  takeUntil = stop: ps:
+    let
+      str = elemAt ps 0;
+      valueStart = elemAt ps 1;
+      len = elemAt ps 2;
+      strLen = stringLength str;
+      stopLen = stringLength stop;
+      # Search for the next valueStart that violates the predicate
+      seekEnd = position:
+        if position >= strLen || (
+            let peekStop = substring position stopLen str; in
+            #lib.traceSeq { inherit peekStop; }
+            (peekStop == stop)
+          )
+          then position # break
+          else seekEnd (position + 1); # continue
+      valueEnd = seekEnd valueStart;
+      # The number of characters we found
+      valueLen = valueEnd - valueStart;
+      foundStop = let peekStop = substring valueEnd stopLen str; in
+        #lib.traceSeq { inherit peekStop; }
+        peekStop == stop;
+      value = substring valueStart valueLen str;
+      parseEnd = if foundStop then (valueEnd + stopLen) else valueEnd;
+      remain = if foundStop then (len - valueLen - stopLen) else (len - valueLen);
+    in [value parseEnd remain];
 
   Comment = (
-    skipThen
-    (string "<!--") # skip
+    bind
     (
-      concatInitStrings (
-        many (
-          alt
-          (
-            let
-              isChar = c:
-                lib.traceSeq ("c='${c}' -> ${if c != "-" then "take" else "skip"}")
-                (c != "-")
-              ;
-            in
-            lexeme (takeWhile1 isChar)
-          )
-          (
-            bind (peekN 3) (value:
-              if value == "-->"
-              then lib.traceSeq "peek: value='${value}' -> skip 3" skip 3 # skip returns null
-              else lib.traceSeq "peek: value='${value}' -> take 1" take 1
-            )
-          )
-        )
-      )
+      skipThen
+      (string "<!--") # skip
+      (takeUntil "-->")
     )
+    (value: pure { type = "comment"; inherit value; })
   );
 
-in {
+in rec {
   parseXmlComment = runParser (thenSkip Comment eof);
+  test = (parseXmlComment ''<!-- comment - -- -->'');
+  #                            " comment - -- "
 }
