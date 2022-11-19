@@ -31,7 +31,6 @@ let
       len = elemAt ps 2;
       strLen = stringLength str;
       stopLen = stringLength stop;
-      # Search for the next valueStart that violates the predicate
       seekEnd = position:
         if position >= strLen || (
             let peekStop = substring position stopLen str; in
