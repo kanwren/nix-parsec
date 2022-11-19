@@ -2,16 +2,22 @@
 
 cd "$(dirname "$0")"
 
-# TODO better than lib.traceValSeq
-nix-instantiate --expr --strict '
-  with import <nixpkgs> {};
-  #with import ./default.nix {}; error: value is a function while a set was expected
-  #with import ./default.nix;
-  with import ./from-xml.nix;
-  lib.traceValSeq
-  (
-    #fromXml "<doc><val>hello</val></doc>"
-    #fromXml "<doc/>"
-    test
-  )
-'
+input="$1"
+if [ -z "$input" ]
+then
+  echo "usage:" >&2
+  echo "$0 '<doc>text</doc>'" >&2
+  exit 1
+fi
+
+inputQuoted="$(echo '""' | jq '$s' --arg s "$input")"
+
+outputJson="$(
+  nix-instantiate --expr --json --eval --strict --arg input "$inputQuoted" '
+    { input }:
+    with import ./parse-xml.nix;
+    printYaml (parseXml input).value
+  '
+)"
+
+echo "$outputJson" | jq -r
